@@ -1,0 +1,36 @@
+@import 'compass/reset';
+@import 'compass/css3';
+
+$max-slides: 50;
+
+#main-wrapper {
+  position: relative;
+  width: 50%;
+  height: 500px;
+  margin: 0 auto;
+  border: 1px solid;
+}
+
+#main {
+  position: absolute;
+  width: percentage($max-slides);
+  height: 100%;
+}
+
+.node {
+  float: left;
+  position: relative;
+  height: 100%;
+  width: percentage(1 / $max-slides);
+  .node-content {
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+  }
+  .node-content {
+    z-index: 1;
+    height: 100%;
+    overflow: auto;
+  }
+}

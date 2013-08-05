@@ -1,0 +1,3 @@
+<button>Click me!</button>
+
+<p>Foo: <%= @data.foo %></p>
