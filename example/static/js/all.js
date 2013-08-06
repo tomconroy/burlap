@@ -491,27 +491,26 @@
 //# sourceMappingURL=underscore-min.map
 ;
 (function() {
-  var Controller, Events, Main, Model, Nodes;
+  var Burlap;
 
-  $(function() {
-    return Main.init();
-  });
-
-  Main = {
-    init: function() {
-      return Model.init(function() {
-        return Nodes.init();
-      });
-    }
+  Burlap = window.Burlap = function(options) {
+    return Burlap.Nodes.init(options);
   };
 
-  Nodes = (function() {
+  Burlap.Nodes = (function() {
     var self;
     return self = {
-      init: function() {
+      init: function(options) {
+        self.settings = _({
+          container: '#main',
+          nodeData: 'static/nodes.json',
+          nodeClass: 'node'
+        }).extend(options);
+        self.controllers = {};
+        self.events = {};
         self.currentNode = -1;
-        self.$main = $('#main');
-        return $.getJSON('static/nodes.json', function(data) {
+        self.$main = $(self.settings.container);
+        return $.getJSON(self.settings.nodeData, function(data) {
           self.data = data;
           return self.setup();
         });
@@ -548,10 +547,10 @@
       route: function(node, context) {
         var container, nodeHtml;
         node.context = context;
-        node.data = Controller[node.template] && Controller[node.template](context.params);
+        node.data = self.controllers[node.template] && self.controllers[node.template](context.params);
         nodeHtml = JST["templates/" + node.template](node);
-        container = $('<div class="node"></div>');
-        _(Events[node.template]).each(function(fn, event) {
+        container = $('<div class="' + self.settings.nodeClass + '"></div>');
+        _(self.events[node.template]).each(function(fn, event) {
           var eventInfo, selector, type;
           eventInfo = event.split(' ');
           if (eventInfo.length >= 2) {
@@ -563,12 +562,12 @@
           }
         });
         container[0].nodeData = node;
-        container.html('<div class="node-content">' + nodeHtml + '</div>');
+        container.html(nodeHtml);
         if (self.refresh) {
           self.$main.html(container);
           self.currentNode = 0;
         } else {
-          self.$main.find(".node:gt(" + self.currentNode + ")").remove();
+          self.$main.find("." + self.settings.nodeClass + ":gt(" + self.currentNode + ")").remove();
           self.$main.append(container);
           self.currentNode++;
         }
@@ -596,24 +595,46 @@
     };
   })();
 
-  Controller = (function() {
-    var self;
-    return self = {
-      example: function(params) {
-        return {
-          foo: Model.foo()
-        };
-      }
-    };
-  })();
+  Burlap.Controllers = function(controllers) {
+    return _(Burlap.Nodes.controllers).extend(controllers);
+  };
 
-  Events = (function() {
+  Burlap.Events = function(events) {
+    return _(Burlap.Nodes.events).extend(events);
+  };
+
+}).call(this);
+(function() {
+  var Main, Model;
+
+  $(function() {
+    return Main.init();
+  });
+
+  Main = (function() {
     var self;
     return self = {
-      example: {
-        'click button': function(e) {
-          return console.log('Clicked!');
-        }
+      init: function() {
+        return Model.init(function() {
+          return self.setup();
+        });
+      },
+      setup: function() {
+        Burlap();
+        Burlap.Controllers({
+          example: function(params) {
+            return {
+              foo: Model.foo()
+            };
+          }
+        });
+        return Burlap.Events({
+          example: {
+            'click button': function(e) {
+              return console.log('Clicked!');
+            }
+          }
+        });
       }
     };
   })();
@@ -634,6 +655,7 @@
   })();
 
 }).call(this);
+
 
 
 

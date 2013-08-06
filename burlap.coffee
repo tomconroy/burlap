@@ -1,33 +1,36 @@
-$ ->
-  Main.init()
+Burlap = window.Burlap = (options) ->
+  Burlap.Nodes.init(options)
 
-Main =
-  init: ->
-    Model.init ->
-      Nodes.init()
-
-Nodes = do ->
+Burlap.Nodes = do ->
   self = 
-    init: ->
-      self.currentNode = -1 # since we increment straight away
-      self.$main = $('#main')
+    init: (options) ->
+      self.settings = _({
+        container: '#main'
+        nodeData: 'static/nodes.json'
+        nodeClass: 'node'
+      }).extend(options)
       
-      $.getJSON 'static/nodes.json', (data) ->
+      self.controllers = {}
+      self.events = {}
+      self.currentNode = -1 # since we increment straight away
+      self.$main = $(self.settings.container)
+
+      $.getJSON self.settings.nodeData, (data) ->
         self.data = data
         self.setup()
-        
+
     setup: ->
       # set up clicks
       $(document).on 'click', 'a[data-route]', self.linkHandler
-      
+
       # set up page.js routing; they all point to self.route()
       _(self.data).each (node) ->
         page node.route, (context) ->
           self.route(node, context)
-      
+
       # our index is gonna be '/#' -- makes self.back() easier
       page("/#{location.hash || '#'}")
-      
+
     linkHandler: (e) ->
       e.preventDefault()
 
@@ -42,13 +45,13 @@ Nodes = do ->
         Menu.close()
       else
         page(href)
-        
+
     refreshNode: ->
       self.transition = false
       self.$main.find(".node:eq(#{self.currentNode})").remove()
       self.currentNode--
       page("/#{location.hash}")
-      
+
     route: (node, context) ->
       # attaching the page.js context means templates can
       # access context.params in their own way;
@@ -56,13 +59,13 @@ Nodes = do ->
       node.context = context
 
       # get additional data from the Controller corresponding to template name
-      node.data = Controller[node.template] && Controller[node.template](context.params)
-      
+      node.data = self.controllers[node.template] && self.controllers[node.template](context.params)
+
       nodeHtml = JST["templates/#{node.template}"](node)
-      container = $('<div class="node"></div>')
+      container = $('<div class="'+self.settings.nodeClass+'"></div>')
 
       # attach events relevant to this node from Events
-      _( Events[node.template] ).each (fn, event) ->
+      _( self.events[node.template] ).each (fn, event) ->
         eventInfo = event.split(' ')
         if eventInfo.length >= 2
           type = eventInfo[0]
@@ -74,24 +77,24 @@ Nodes = do ->
       # so we're more context-aware
       container[0].nodeData = node
 
-      container.html('<div class="node-content">'+nodeHtml+'</div>')
+      container.html(nodeHtml)
 
       if self.refresh # kill everything and start the chain
         self.$main.html(container)
         self.currentNode = 0
       else # append to the current chain
-        self.$main.find(".node:gt(#{self.currentNode})").remove()
+        self.$main.find(".#{self.settings.nodeClass}:gt(#{self.currentNode})").remove()
         self.$main.append(container)
         self.currentNode++
-        
+
       self.moveToCurrent()
-      
+
     moveToCurrent: ->
       self.$main.css(left: -(self.currentNode * 100) + '%')
 
       self.refresh = false
       self.goingBack = false
-      
+
     back: ->
       self.goingBack = true
       if self.currentNode > 0
@@ -104,26 +107,9 @@ Nodes = do ->
 
       self.checkBackButton(route)
       self.moveToCurrent()
-      
-      
-Controller = do ->
-  self = 
-    example: (params) ->
-      {foo: Model.foo()}
-    
 
-Events = do ->
-  self =
-    example:
-      'click button': (e) ->
-        console.log 'Clicked!'
-
-Model = do ->
-  self = 
-    init: (callback) ->
-      $.getJSON 'static/data.json', (data) ->
-        self.data = data
-        callback && callback()
-    
-    foo: ->
-      self.data.foo
+Burlap.Controllers = (controllers) ->
+  _(Burlap.Nodes.controllers).extend(controllers)
+  
+Burlap.Events = (events) ->
+  _(Burlap.Nodes.events).extend(events)
