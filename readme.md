@@ -2,7 +2,7 @@
 
 #### A CoffeeScript Prototyping Framework
 
-Simulate native app functionality on with CoffeeScript and ECO templates.
+Simulate native app functionality on the frontend with CoffeeScript and ECO templates.
 
 Compile `burlap.coffee` along with a ECO templates in a `templates` folder.
 
